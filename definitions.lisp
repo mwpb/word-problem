@@ -1,17 +1,42 @@
+(load "lisp-unit")
+
 (defvar *Arrows* nil)
 
 (defun reset-arrows ()
     (setq *Arrows* nil))
 
-(defun is-arrow? (f)
-  (member f *Arrows* :test #'equal))
+(defun is-sequence? (f) (typep f 'cons))
+
+(lisp-unit:define-test is-sequence?-test
+  (lisp-unit:assert-equal nil (is-sequence? 5))
+  (lisp-unit:assert-equal nil (is-sequence? '()))
+  (lisp-unit:assert-equal nil (is-sequence? ()))
+  (lisp-unit:assert-equal t (is-sequence? '(1)))
+  (lisp-unit:assert-equal t (is-sequence? '(1 2)))
+  (lisp-unit:assert-equal t (is-sequence? (list 1 3 4 5 6))))
+
+(lisp-unit:run-tests :all)
+(lisp-unit:use-debugger t)
+
+(defun get-common-head (f g)
+  (get-common-head-inner nil f g))
+
+(defun get-common-tail (f g)
+  (get-common-head-inner nil (reverse f) (reverse g)))
+
+(defun get-common-head-and-tail (f g)
+  (let ((x (get-common-head f g)))
+    (let ((y (get-common-tail (second x) (third x))))
+      (list (reverse (first x)) (list (reverse (second y)) (reverse (third y))) (first y)))))
+
+(defun is-arrow? (f) (member f *Arrows* :test #'equal))
 
 (defun push-to-arrows (f)
   (cond ((is-arrow? f) ())
 	(t (setq *Arrows* (push f *Arrows*)))))
 
 (defun add-arrow (f)
-  (cond ((not (typep f 'cons)) (push-to-arrows f) )
+  (cond ((not (is-sequence? f)) (push-to-arrows f) )
 	(t (reduce
 	    (lambda (x y)
 	      (progn (push-to-arrows (list x y))
@@ -19,81 +44,37 @@
 		     (add-arrow y)
 		     y)) f))))
 
-(defun check-arrow (f)
+(defun is-generated-arrow? (x y)
+  (let ((difference (second (get-common-head-and-tail x y))))
+    (is-arrow? difference)))
+
+(defun check-sequence (f)
   (cond ((not (typep f 'cons)) (is-arrow? f))
 	(t (reduce
 	    (lambda (x y)
 	      (cond ((not x) nil)
-		    ((is-arrow? (list x y)) y)
+		    ((is-generated-arrow? x y) y)
 		    (t nil)) ) f ))))
 
+
+(defun get-common-head-inner (acc f g)
+  (cond ((not f) (list acc f g))
+	((= (car f) (car g)) (get-common-head-inner (push (car f) acc) (cdr f) (cdr g)))
+	(t (list acc f g))))
+
+
+(get-common-head '(1 2 3 4 5) '(1 2 3 6 4 5))
+(get-common-tail '(1 2 3 4 5) '(1 2 3 6 4 5))
+(get-common-head-and-tail '(1 2 9 8 4 5) '(1 2 12 12 6 4 5))
+(get-common-head-and-tail '(1 2) '(1 2))
+(get-common-head '(1 2) '(1 2))
+
 (reset-arrows)
-(add-arrow 0)
+(add-arrow '((1 2) (3 4)))
 (add-arrow (list 0 1 2))
 (add-arrow (list (list 0 2 1) (list 0 3 1) (list 0 4 1)))
 (check-arrow (list 0 4 1))
 (list *Arrows*)
+(check-sequence (list (list 0 1 2 5) (list 0 3 4 5)))
+(get-common-head-and-tail (list 0 2 3 5) (list 0 3 4 5))
 
-(defvar *Equalities* nil)
-(defvar *Composable-Arrows* nil)
-
-(defun reset-category ()
-  (progn (setq *Equalities* nil)
-	 (setq *Composable-Arrows* nil)))
-
-(defun is-arrow (f)
-  (member (list f) *Composable-Arrows* :test #'equal))
-
-(defun add-arrow (f)
-  (cond ((is-arrow f) ())
-	(t (progn (setq *Equalities* (push (list f) *Equalities*))
-		  (setq *Composable-Arrows* (push (list f) *Composable-Arrows*))))))
-
-(defun add-arrows (arrows)
-  (dolist (arrow arrows) (add-arrow arrow)))
-
-(defun equivalence-class (f)
-  (find-if (lambda (x) (member f x :test #'equal) ) *Equalities*))
-
-(defun are-equal (f g)
-  (member f (equivalence-class g) :test #'equal))
-
-(defun set-equal (f g)
-  (let ((x (concatenate 'list (equivalence-class f) (equivalence-class g))))
-    (progn (setq *Equalities* (remove (equivalence-class f) *Equalities*))
-	   (setq *Equalities* (remove (equivalence-class g) *Equalities*))
-	   (setq *Equalities* (push x *Equalities*)))))
-
-(defun is-composable (f)
-  (cond ((member f *Composable-Arrows* :test #'equal) t)
-	(t nil)))
-
-
-(defun check-composite (f)
-  (reduce (lambda (x y) (cond ((not x) nil)
-			      ((is-composable (list x y)) y)
-			      (t nil)))f))
-
-(defun suppose (f g)
-  (progn (assert-composite f)
-	 (assert-composite g)
-	 (set-equal f g)))
-
-(defun check (f g)
-  (cond ((not (check-composite f)) (format nil "~A not arrow" f))
-	((not (check-composite g)) (format nil "~A not arrow" g))
-	((are-equal f g) t)
-	(t nil)))
-
-(reset-category)
-(assert-composite (list 0 1 2 3 4))
-(is-composable (list 1 2))
-(check-composite (list 2 3))
-(add-arrows '(0 1 2))
-(list *Equalities*)
-(list *Composable-Arrows*)
-(are-equal '(0 1) '(0 2))
-(equivalence-class '(0 2))
-(suppose (list 0 1) (list 0 2))
-(check '(0 1) '(0 2))
-(check (list 0) (list  1))
