@@ -36,15 +36,29 @@
     (let ((y (get-common-tail (second x) (third x))))
       (list (reverse (first x)) (list (reverse (second y)) (reverse (third y))) (first y)))))
 
+
+(get-common-head-and-tail '(1 2) '(3 4))
 (get-common-head (list 0 3 4 5 6) (list 0 5 6))
 (get-common-tail (list 0 3 4 5 6) (list 0 5 6))
 (get-common-head-and-tail (list 0 3 4 5 6) (list 0 5 6))
 
-(defun is-arrow? (f) (member f *Arrows* :test #'equal))
+(get-common-head '(1 2 3 4 5) '(1 2 3 6 4 5))
+(get-common-tail '(1 2 3 4 5) '(1 2 3 6 4 5))
+(get-common-head-and-tail '(1 2 9 8 4 5) '(1 2 12 12 6 4 5))
+(get-common-head-and-tail '(1 2) '(1 2))
+(get-common-head '(1 2) '(1 2))
+
+(defun is-arrow? (f) (cond ((member f *Arrows* :test #'equal) t)
+			   (t nil)))
 
 (defun push-to-arrows (f)
   (cond ((is-arrow? f) ())
-	(t (setq *Arrows* (push f *Arrows*)))))
+	(t (list (setq *Arrows* (push f *Arrows*))))))
+
+(reset-arrows)
+(push-to-arrows '())
+(push-to-arrows '(1 2 3))
+*Arrows*
 
 (defun add-arrow (f)
   (cond ((not (is-sequence? f)) (push-to-arrows f) )
@@ -59,23 +73,20 @@
   (let ((difference (second (get-common-head-and-tail x y))))
     (is-arrow? difference)))
 
-(defun check-sequence (f)
-  (cond ((not (typep f 'cons)) (is-arrow? f))
-	(t (reduce
-	    (lambda (x y)
-	      (cond ((not x) nil)
-		    ((is-generated-arrow? x y) y)
-		    (t nil)) ) f ))))
+(reset-arrows)
+(add-arrow '((1 2) (3 4)))
+(add-arrow '((3 4) ()))
+*Arrows*
+(is-generated-arrow? '(1 2) '(3 4))
+(is-generated-arrow? '(3 4) '())
 
-(defun prove-sequence (f)
-  (cond ((not (check-sequence f)) nil)
-	(t (push-to-arrows (list (first f) (first (last f)))))))
+(defun check-sequence-inner (acc f)
+  (cond ((not f) acc)
+	((= 1 (length f)) (list (first acc) (first f)))
+	((is-arrow? (list (first f) (second f))) (check-sequence-inner (list (first acc) (second f)) (cdr f)))
+	(t nil)))
 
-(get-common-head '(1 2 3 4 5) '(1 2 3 6 4 5))
-(get-common-tail '(1 2 3 4 5) '(1 2 3 6 4 5))
-(get-common-head-and-tail '(1 2 9 8 4 5) '(1 2 12 12 6 4 5))
-(get-common-head-and-tail '(1 2) '(1 2))
-(get-common-head '(1 2) '(1 2))
+(defun check-sequence (f) (check-sequence-inner (list (first f) nil) f))
 
 (reset-arrows)
 (add-arrow (list (list 1 2) (list 3 4)))
@@ -84,4 +95,5 @@
 (is-generated-arrow? (list 0 3 4 5 6) (list 0 5 6))
 (check-sequence (list (list 0 1 2 5 6) (list 0 3 4 5 6) (list 0 5 6)))
 (prove-sequence (list (list 0 1 2 5 6) (list 0 3 4 5 6) (list 0 5 6)))
+(check-sequence (list (list 1 2) (list 3 4) '()))
 (is-arrow? (list (list 0 1 2 5 6) (list 0 5 6)))
