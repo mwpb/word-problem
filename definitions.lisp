@@ -15,6 +15,7 @@
   (lisp-unit:assert-equal nil (is-sequence? ()))
   (lisp-unit:assert-equal t (is-sequence? '(1)))
   (lisp-unit:assert-equal t (is-sequence? '(1 2)))
+  (lisp-unit:assert-equal t (is-sequence '(1 2 3 4 5 6)))
   (lisp-unit:assert-equal t (is-sequence? (list 1 3 4 5 6))))
 
 (lisp-unit:run-tests :all)
