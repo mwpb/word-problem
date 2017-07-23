@@ -2,6 +2,8 @@
 
 (defvar *Arrows* nil)
 
+(defmacro define-variable (f) `(defvar ,f))
+
 (defun reset-arrows ()
     (setq *Arrows* nil))
 
@@ -54,6 +56,15 @@
 (defun push-to-arrows (f)
   (cond ((is-arrow? f) ())
 	(t (list (setq *Arrows* (push f *Arrows*))))))
+(defmacro create-arrow (f) `(progn (defvar ,f) (push-to-arrows ',f)))
+
+(macroexpand '(create-arrow f))
+(create-arrow g)
+
+(defvar f)
+(push-to-arrows 'f)
+
+(is-sequence? g)
 
 (reset-arrows)
 (push-to-arrows '())
@@ -94,6 +105,4 @@
 *Arrows*
 (is-generated-arrow? (list 0 3 4 5 6) (list 0 5 6))
 (check-sequence (list (list 0 1 2 5 6) (list 0 3 4 5 6) (list 0 5 6)))
-(prove-sequence (list (list 0 1 2 5 6) (list 0 3 4 5 6) (list 0 5 6)))
 (check-sequence (list (list 1 2) (list 3 4) '()))
-(is-arrow? (list (list 0 1 2 5 6) (list 0 5 6)))
