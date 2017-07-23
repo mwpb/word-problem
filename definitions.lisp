@@ -1,5 +1,4 @@
 (load "lisp-unit")
-
 (defvar *Arrows* nil)
 
 (defmacro define-variable (f) `(defvar ,f))
