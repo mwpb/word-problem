@@ -19,7 +19,6 @@
 
 (lisp-unit:run-tests :all)
 (lisp-unit:use-debugger t)
-;; tester 
 
 (defun get-common-head-inner (acc f g)
   (cond ((not f) (list acc f g))
